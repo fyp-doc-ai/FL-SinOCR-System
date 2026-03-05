@@ -1,0 +1,24 @@
+# Phase 2: FedOPT -- server-side adaptive optimization
+# Inherits from base_config.yaml
+
+fl:
+  algorithm: "fedopt"
+  num_rounds: 50
+  clients_per_round: 3
+
+peft:
+  method: "none"
+
+training:
+  local_epochs: 3
+  learning_rate: 5.0e-5
+
+server_optimizer:
+  type: "adam"
+  lr: 0.01
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-8
+
+logging:
+  experiment_name: "fedopt_adam"

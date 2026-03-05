@@ -1,0 +1,17 @@
+# Phase 1: FedAvg Baseline
+# Inherits from base_config.yaml -- only overrides are listed here.
+
+fl:
+  algorithm: "fedavg"
+  num_rounds: 50
+  clients_per_round: 3
+
+peft:
+  method: "none"
+
+training:
+  local_epochs: 3
+  learning_rate: 5.0e-5
+
+logging:
+  experiment_name: "fedavg_baseline"

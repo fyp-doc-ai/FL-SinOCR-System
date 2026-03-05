@@ -1,0 +1,86 @@
+# Base configuration -- shared defaults inherited by all experiments
+# Override specific fields in experiment-specific YAML files.
+
+seed: 42
+
+# --- Dataset paths ---
+data:
+  base_dir: "../allData"
+  handwritten_train: "${data.base_dir}/handwritten-data/train"
+  handwritten_test: "${data.base_dir}/handwritten-data/test"
+  printed_train: "${data.base_dir}/printed-data/train"
+  printed_test: "${data.base_dir}/printed-data/test"
+  partition_dir: "data/partitions"
+
+# --- Partitioning ---
+partition:
+  method: "dirichlet"          # dirichlet | clustering | institution
+  num_clients: 5
+  alpha: 0.5                   # Dirichlet concentration (lower = more Non-IID)
+  num_clusters: 5              # for clustering method
+  min_samples_per_client: 10
+
+# --- Model ---
+model:
+  name: "microsoft/trocr-base-handwritten"
+  max_length: 64               # max decoder sequence length
+
+# --- PEFT ---
+peft:
+  method: "none"               # none | lora | adapter | encoder_only
+  lora:
+    r: 8
+    alpha: 16
+    dropout: 0.1
+    target_modules:
+      - "query"
+      - "value"
+  adapter:
+    bottleneck_dim: 64
+    adapter_dropout: 0.1
+
+# --- Federated Learning ---
+fl:
+  algorithm: "fedavg"          # fedavg | scaffold | fedopt
+  num_rounds: 50
+  clients_per_round: 3
+  fraction_fit: 0.6
+  fraction_evaluate: 0.3
+
+# --- Local training ---
+training:
+  local_epochs: 3
+  batch_size: 8
+  learning_rate: 5.0e-5
+  weight_decay: 0.01
+  optimizer: "adamw"           # adamw | sgd
+  lr_scheduler: "cosine"       # cosine | linear | constant
+  warmup_steps: 0
+  max_grad_norm: 1.0
+
+# --- Server-side (FedOPT / SCAFFOLD) ---
+server_optimizer:
+  type: "adam"                 # adam | adagrad | sgd
+  lr: 1.0
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-8
+
+scaffold:
+  server_lr: 1.0
+
+# --- Evaluation ---
+evaluation:
+  eval_every_n_rounds: 1
+  metrics:
+    - "cer"
+    - "wer"
+
+# --- Logging ---
+logging:
+  output_dir: "experiments/results"
+  experiment_name: "default"
+  use_tensorboard: true
+  use_wandb: false
+  wandb_project: "fl-sinhala-ocr"
+  log_every_n_rounds: 1

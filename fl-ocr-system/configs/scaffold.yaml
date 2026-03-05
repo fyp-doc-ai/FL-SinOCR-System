@@ -1,0 +1,20 @@
+# Phase 2: SCAFFOLD -- variance reduction for Non-IID data
+# Inherits from base_config.yaml
+
+fl:
+  algorithm: "scaffold"
+  num_rounds: 50
+  clients_per_round: 3
+
+peft:
+  method: "none"
+
+training:
+  local_epochs: 3
+  learning_rate: 5.0e-5
+
+scaffold:
+  server_lr: 1.0
+
+logging:
+  experiment_name: "scaffold_noniid"
