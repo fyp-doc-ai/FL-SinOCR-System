@@ -1,1 +1,4 @@
 allData/
+fl-ocr-system/data/
+.venv/
+.env

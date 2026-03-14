@@ -18,6 +18,22 @@ from models.trocr_wrapper import SinhalaOCRDataset
 from partition_scripts.partition_utils import load_dataset_csv
 
 
+def _generate_kwargs(max_length: int, gen_config: Optional[dict] = None) -> dict:
+    """Build kwargs for model.generate() to match notebook (beam search, length penalty).
+
+    Passes params as kwargs so generation uses them instead of deprecated model.config.
+    """
+    kwargs = {"max_length": max_length}
+    if gen_config:
+        kwargs["num_beams"] = gen_config.get("num_beams", 4)
+        kwargs["length_penalty"] = gen_config.get("length_penalty", 2.0)
+        if "early_stopping" in gen_config:
+            kwargs["early_stopping"] = gen_config["early_stopping"]
+        if "no_repeat_ngram_size" in gen_config:
+            kwargs["no_repeat_ngram_size"] = gen_config["no_repeat_ngram_size"]
+    return kwargs
+
+
 def evaluate_global_model(
     model: VisionEncoderDecoderModel,
     processor: TrOCRProcessor,
@@ -25,8 +41,13 @@ def evaluate_global_model(
     max_length: int = 64,
     batch_size: int = 8,
     device: str = "cpu",
+    gen_config: Optional[dict] = None,
 ) -> Dict[str, float]:
-    """Evaluate the global model on the full test set."""
+    """Evaluate the global model on the full test set.
+
+    gen_config: optional dict with num_beams, length_penalty, early_stopping (aligns with
+    notebook 00_TrOCR_text_fine_tuned_handwritten for consistent CER/WER).
+    """
     image_paths, texts = load_dataset_csv(test_data_dir)
 
     dataset = SinhalaOCRDataset(image_paths, texts, processor, max_length)
@@ -35,12 +56,13 @@ def evaluate_global_model(
     model.eval()
     model.to(device)
 
+    gen_kwargs = _generate_kwargs(max_length, gen_config)
     all_predictions = []
 
     with torch.no_grad():
         for batch in dataloader:
             pixel_values = batch["pixel_values"].to(device)
-            generated_ids = model.generate(pixel_values, max_length=max_length)
+            generated_ids = model.generate(pixel_values, **gen_kwargs)
             decoded = processor.batch_decode(generated_ids, skip_special_tokens=True)
             all_predictions.extend(decoded)
 
@@ -55,8 +77,11 @@ def evaluate_per_client(
     max_length: int = 64,
     batch_size: int = 8,
     device: str = "cpu",
+    gen_config: Optional[dict] = None,
 ) -> Tuple[Dict[str, float], List[Dict[str, float]]]:
     """Evaluate the global model on each client's data separately.
+
+    gen_config: optional dict for model.generate (num_beams, length_penalty, etc.).
 
     Returns:
         (aggregated_stats, per_client_metrics)
@@ -65,6 +90,7 @@ def evaluate_per_client(
     """
     num_clients = get_num_clients(partition_dir)
     per_client = []
+    gen_kwargs = _generate_kwargs(max_length, gen_config)
 
     model.eval()
     model.to(device)
@@ -81,7 +107,7 @@ def evaluate_per_client(
         with torch.no_grad():
             for batch in dataloader:
                 pixel_values = batch["pixel_values"].to(device)
-                gen_ids = model.generate(pixel_values, max_length=max_length)
+                gen_ids = model.generate(pixel_values, **gen_kwargs)
                 decoded = processor.batch_decode(gen_ids, skip_special_tokens=True)
                 all_preds.extend(decoded)
 

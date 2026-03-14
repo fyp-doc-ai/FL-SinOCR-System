@@ -13,17 +13,27 @@ data:
   partition_dir: "data/partitions"
 
 # --- Partitioning ---
+# Use "clustering" to group same-style handwriting per client (visual similarity).
+# Use "dirichlet" for label-based Non-IID; "institution" for handwritten/printed mix.
 partition:
-  method: "dirichlet"          # dirichlet | clustering | institution
+  method: "clustering"          # dirichlet | clustering | institution
   num_clients: 5
   alpha: 0.5                   # Dirichlet concentration (lower = more Non-IID)
-  num_clusters: 5              # for clustering method
+  num_clusters: 5              # number of clients for clustering (same-style groups)
   min_samples_per_client: 10
 
 # --- Model ---
+# Custom Sinhala TrOCR (printed->handwritten), aligned with notebook 00_TrOCR_text_fine_tuned_handwritten.
+# Uses SinBERT tokenizer + DeiT image processor when this model is selected.
+# Alternative: "microsoft/trocr-base-handwritten" (processor loaded from Hub).
 model:
-  name: "microsoft/trocr-base-handwritten"
-  max_length: 64               # max decoder sequence length
+  name: "danush99/Model_TrOCR-Sin-Printed-Text"
+  max_length: 64               # max decoder sequence length (same as notebook)
+  # Generation (evaluation): same as centralized notebook
+  num_beams: 4
+  length_penalty: 2.0
+  early_stopping: true
+  no_repeat_ngram_size: 3
 
 # --- PEFT ---
 peft:

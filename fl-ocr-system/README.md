@@ -3,30 +3,83 @@
 MSc research implementation: applying Federated Learning to improve Sinhala handwritten OCR
 using a pretrained TrOCR (Vision Transformer Encoder + Transformer Decoder) architecture.
 
+**Model alignment:** The default model is the same base used in the centralized training notebook
+(`notebooks/00_TrOCR_text_fine_tuned_handwritten.ipynb`): **danush99/Model_TrOCR-Sin-Printed-Text**
+(Sinhala printed TrOCR). When this model is selected, the system uses the same processor (SinBERT
+tokenizer + DeiT image processor) and generation settings (num_beams=4, length_penalty=2.0) as in
+that notebook, so FL fine-tuning and evaluation are directly comparable to the centralized baseline.
+
 ## Research Objectives
 
 1. **Federated System Design** — baseline FL training with FedAvg
 2. **Robust Federated Training under Non-IID Data** — SCAFFOLD, FedOPT
 3. **Communication-Efficient Fine-Tuning** — LoRA, adapters, encoder-only updates
 
-## Quick Start
+## Running with a Virtual Environment
+
+Use a virtual environment to isolate dependencies. From the project root (`fl-ocr-system/`):
+
+### 1. Create the virtual environment
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+cd fl-ocr-system
 
+# Create a virtual environment (e.g. named .venv or fl-env)
+python3 -m venv .venv
+```
+
+### 2. Activate the virtual environment
+
+**On macOS / Linux:**
+```bash
+source .venv/bin/activate
+```
+
+**On Windows (Command Prompt):**
+```cmd
+.venv\Scripts\activate.bat
+```
+
+**On Windows (PowerShell):**
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+After activation, your prompt will show the env name (e.g. `(.venv)`).
+
+### 3. Install dependencies
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 4. Run the system
+
+```bash
 # Partition the dataset (Dirichlet-based Non-IID)
 python partition_scripts/partition_by_dirichlet.py --config configs/base_config.yaml
 
 # Run a FedAvg experiment
 python experiments/run_experiment.py --config configs/fedavg.yaml
+```
 
+**Other runs (same venv):**
+```bash
 # Run SCAFFOLD
 python experiments/run_experiment.py --config configs/scaffold.yaml
 
 # Run with LoRA
 python experiments/run_experiment.py --config configs/peft_lora.yaml
 ```
+
+### 5. Deactivate when finished
+
+```bash
+deactivate
+```
+
+**Tip:** Add `.venv/` (or your env folder name) to `.gitignore` so the virtual environment is not committed.
 
 ---
 
@@ -47,7 +100,7 @@ python experiments/run_experiment.py --config configs/peft_lora.yaml
 
 | File | Purpose |
 |------|---------|
-| **base_config.yaml** | Shared defaults: data paths, partition settings, model name, FL params (rounds, clients per round), training (epochs, LR, batch size), PEFT options, server optimizer, logging. |
+| **base_config.yaml** | Shared defaults: data paths, partition settings, model name (default: `danush99/Model_TrOCR-Sin-Printed-Text`), generation config (num_beams, length_penalty), FL params, training, PEFT, server optimizer, logging. |
 | **fedavg.yaml** | FedAvg baseline experiment: `algorithm: fedavg`, `peft.method: none`. |
 | **scaffold.yaml** | SCAFFOLD experiment: `algorithm: scaffold`, control-variate server LR. |
 | **fedopt.yaml** | FedOPT experiment: `algorithm: fedopt`, server-side Adam/Adagrad settings. |
@@ -92,7 +145,7 @@ Each `client_{id}/` contains:
 
 | File | Purpose |
 |------|---------|
-| **trocr_wrapper.py** | `TrOCRWrapper`: load `microsoft/trocr-base-handwritten` and processor, create datasets, run inference (`generate`). `SinhalaOCRDataset`: image–text pairs with processor and max length. |
+| **trocr_wrapper.py** | `TrOCRWrapper`: load TrOCR model and processor; for `danush99/Model_TrOCR-Sin-Printed-Text` uses SinBERT tokenizer + DeiT image processor (aligned with notebook `00_TrOCR_text_fine_tuned_handwritten`). `SinhalaOCRDataset`: image–text pairs, same preprocessing and label handling as the notebook. |
 | **model_utils.py** | `get_parameters_as_ndarrays` / `set_parameters_from_ndarrays` (trainable-only option for PEFT), `compute_parameter_bytes`, `freeze_module` / `unfreeze_module`, `count_parameters`. |
 | **__init__.py** | Package marker. |
 
@@ -196,6 +249,7 @@ Each `client_{id}/` contains:
 
 | File | Purpose |
 |------|---------|
+| **00_TrOCR_text_fine_tuned_handwritten.ipynb** | **Centralized baseline:** fine-tune TrOCR (danush99/Model_TrOCR-Sin-Printed-Text) on handwritten data with SinBERT+DeiT processor and Seq2SeqTrainer. FL training and evaluation in this repo use the same model and processor for direct comparison. |
 | **01_data_analysis.ipynb** | SinOCR exploration: load train/test CSV for handwritten and printed data, text length distributions, character frequency (top characters), sample image grid. |
 | **02_partition_viz.ipynb** | After partitioning: load `partition_summary.json`, bar chart of samples per client, character-distribution heatmap per client, text-length distribution per client. |
 | **03_results_analysis.ipynb** | Load experiment results from `experiments/results/`: discovery of runs, convergence (CER vs round), communication efficiency (CER vs cumulative MB), worst-client CER, summary table (algorithm, PEFT, rounds, final CER, total MB, time). |

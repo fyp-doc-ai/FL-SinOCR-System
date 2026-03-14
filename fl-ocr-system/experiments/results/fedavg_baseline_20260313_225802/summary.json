@@ -1,0 +1,12 @@
+{
+  "elapsed_seconds": 36444.247321128845,
+  "total_rounds": 50,
+  "algorithm": "fedavg",
+  "peft_method": "none",
+  "total_bytes": 288947136000,
+  "total_mb": 275561.46240234375,
+  "total_gb": 269.1029906272888,
+  "num_rounds": 50,
+  "avg_bytes_per_round": 5778942720.0,
+  "bytes_per_param_set": 963157120
+}

@@ -63,7 +63,7 @@ def create_client_dataloader(
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=0,
-        pin_memory=True,
+        pin_memory=False,  # True only helps with CUDA; avoids MPS warning on Mac
     )
 
 

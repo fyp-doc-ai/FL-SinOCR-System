@@ -1,0 +1,106 @@
+%% fl-ocr-system: module dependency diagram
+%% Nodes = Python modules; edges = "imports"
+
+flowchart TB
+    subgraph experiments["experiments"]
+        run_experiment["run_experiment.py"]
+        sweep["sweep.py"]
+    end
+
+    subgraph fl_server["fl_server"]
+        server["server.py"]
+        subgraph aggregators["aggregators"]
+            base["base.py"]
+            fedavg["fedavg.py"]
+            fedopt["fedopt.py"]
+            scaffold["scaffold.py"]
+        end
+    end
+
+    subgraph fl_clients["fl_clients"]
+        client["client.py"]
+        client_utils["client_utils.py"]
+    end
+
+    subgraph models["models"]
+        model_utils["model_utils.py"]
+        trocr_wrapper["trocr_wrapper.py"]
+    end
+
+    subgraph evaluation["evaluation"]
+        eval_pipeline["eval_pipeline.py"]
+        metrics["metrics.py"]
+        communication_cost["communication_cost.py"]
+    end
+
+    subgraph logging_utils["logging_utils"]
+        logger["logger.py"]
+    end
+
+    subgraph training["training"]
+        trainer["trainer.py"]
+    end
+
+    subgraph peft_modules["peft_modules"]
+        peft_utils["peft_utils.py"]
+        lora["lora.py"]
+        adapters["adapters.py"]
+        encoder_only["encoder_only.py"]
+    end
+
+    subgraph partition_scripts["partition_scripts"]
+        partition_utils["partition_utils.py"]
+        partition_dirichlet["partition_by_dirichlet.py"]
+        partition_clustering["partition_by_clustering.py"]
+        partition_institution["partition_by_institution.py"]
+    end
+
+    %% run_experiment imports
+    run_experiment --> communication_cost
+    run_experiment --> eval_pipeline
+    run_experiment --> client
+    run_experiment --> client_utils
+    run_experiment --> server
+    run_experiment --> logger
+    run_experiment --> model_utils
+    run_experiment --> trocr_wrapper
+    run_experiment --> peft_utils
+
+    %% server imports
+    server --> base
+    server --> fedavg
+    server --> fedopt
+    server --> scaffold
+
+    %% aggregators
+    fedavg --> base
+    fedopt --> base
+    scaffold --> base
+
+    %% client imports
+    client --> client_utils
+    client --> model_utils
+    client --> trainer
+
+    %% client_utils imports
+    client_utils --> trocr_wrapper
+
+    %% evaluation
+    eval_pipeline --> metrics
+    eval_pipeline --> client_utils
+    eval_pipeline --> trocr_wrapper
+    eval_pipeline --> partition_utils
+    communication_cost --> model_utils
+
+    %% peft
+    peft_utils --> model_utils
+    peft_utils --> lora
+    peft_utils --> adapters
+    peft_utils --> encoder_only
+    adapters --> model_utils
+    encoder_only --> model_utils
+
+    %% partition scripts
+    partition_dirichlet --> partition_utils
+    partition_clustering --> partition_utils
+    partition_institution --> partition_utils

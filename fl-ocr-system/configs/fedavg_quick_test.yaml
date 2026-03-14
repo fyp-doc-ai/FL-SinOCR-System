@@ -1,0 +1,18 @@
+# Minimal run to verify no startup/API errors (1 round, 1 client, 1 local epoch).
+# Run: python experiments/run_experiment.py --config configs/fedavg_quick_test.yaml
+# If this completes without error, the full fedavg.yaml run should work (may be slow or OOM on large models).
+
+fl:
+  algorithm: "fedavg"
+  num_rounds: 1
+  clients_per_round: 1
+
+peft:
+  method: "none"
+
+training:
+  local_epochs: 1
+  learning_rate: 5.0e-5
+
+logging:
+  experiment_name: "fedavg_quick_test"

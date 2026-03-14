@@ -1,0 +1,68 @@
+seed: 42
+data:
+  base_dir: ../allData
+  handwritten_train: ${data.base_dir}/handwritten-data/train
+  handwritten_test: ${data.base_dir}/handwritten-data/test
+  printed_train: ${data.base_dir}/printed-data/train
+  printed_test: ${data.base_dir}/printed-data/test
+  partition_dir: data/partitions
+partition:
+  method: clustering
+  num_clients: 5
+  alpha: 0.5
+  num_clusters: 5
+  min_samples_per_client: 10
+model:
+  name: danush99/Model_TrOCR-Sin-Printed-Text
+  max_length: 64
+  num_beams: 4
+  length_penalty: 2.0
+  early_stopping: true
+  no_repeat_ngram_size: 3
+peft:
+  method: none
+  lora:
+    r: 8
+    alpha: 16
+    dropout: 0.1
+    target_modules:
+    - query
+    - value
+  adapter:
+    bottleneck_dim: 64
+    adapter_dropout: 0.1
+fl:
+  algorithm: fedavg
+  num_rounds: 50
+  clients_per_round: 3
+  fraction_fit: 0.6
+  fraction_evaluate: 0.3
+training:
+  local_epochs: 3
+  batch_size: 8
+  learning_rate: 5.0e-05
+  weight_decay: 0.01
+  optimizer: adamw
+  lr_scheduler: cosine
+  warmup_steps: 0
+  max_grad_norm: 1.0
+server_optimizer:
+  type: adam
+  lr: 1.0
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-08
+scaffold:
+  server_lr: 1.0
+evaluation:
+  eval_every_n_rounds: 1
+  metrics:
+  - cer
+  - wer
+logging:
+  output_dir: experiments/results
+  experiment_name: fedavg_baseline
+  use_tensorboard: true
+  use_wandb: false
+  wandb_project: fl-sinhala-ocr
+  log_every_n_rounds: 1
