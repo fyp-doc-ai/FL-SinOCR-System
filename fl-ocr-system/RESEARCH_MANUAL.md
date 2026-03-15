@@ -17,6 +17,7 @@ This document is a step-by-step guide (A–Z) to run the system, perform evaluat
 9. [Suggested Research Workflow for Thesis Impact](#9-suggested-research-workflow-for-thesis-impact)
 10. [Command Reference](#10-command-reference)
 11. [Troubleshooting and Tips](#11-troubleshooting-and-tips)
+12. [Centralized Model Evaluation (Baseline Comparison)](#12-centralized-model-evaluation-baseline-comparison)
 
 ---
 
@@ -25,7 +26,7 @@ This document is a step-by-step guide (A–Z) to run the system, perform evaluat
 ### 1.1 Model and Centralized Baseline
 
 The FL system uses the **same base model and preprocessing** as the centralized training notebook
-`notebooks/00_TrOCR_text_fine_tuned_handwritten.ipynb`:
+`notebooks/others/trocr-fine-tuned-handwritten.ipynb`:
 
 - **Model:** `danush99/Model_TrOCR-Sin-Printed-Text` (Sinhala printed TrOCR, fine-tuned for handwritten in that notebook).
 - **Processor:** SinBERT tokenizer (`NLPC-UOM/SinBERT-large`) + DeiT image processor (`facebook/deit-base-distilled-patch16-224`) when this model is selected.
@@ -278,7 +279,7 @@ Each run creates a timestamped directory under `experiments/results/`:
 - **CER (Character Error Rate):** Edit distance (insertions, deletions, substitutions) at **character** level, normalized by total reference characters. Lower is better; 0 = perfect.
 - **WER (Word Error Rate):** Same at **word** level. Typically higher than CER; lower is better.
 
-Both are computed with the `jiwer` library on the model’s decoded text vs ground truth. Decoding uses the same generation config as the centralized notebook (num_beams=4, length_penalty=2.0) so FL evaluation is directly comparable to the baseline in `00_TrOCR_text_fine_tuned_handwritten.ipynb`.
+Both are computed with the `jiwer` library on the model’s decoded text vs ground truth. Decoding uses the same generation config as the centralized notebook (num_beams=4, length_penalty=2.0) so FL evaluation is directly comparable to the baseline in `notebooks/others/trocr-fine-tuned-handwritten.ipynb`.
 
 ### 6.4 Running TensorBoard (Optional)
 
@@ -359,7 +360,7 @@ You can export figures and the table for your thesis.
 
 | Algorithm | Final global CER | Final worst-client CER | Total communication (MB) | Time (s) |
 |-----------|------------------|------------------------|---------------------------|----------|
-| FedAvg    | …                | …                      | …                         | …        |
+| FedAvg    | 0.724            | 0.265                  | 275,561                   | 36,444   |
 | SCAFFOLD  | …                | …                      | …                         | …        |
 | FedOPT    | …                | …                      | …                         | …        |
 
@@ -367,10 +368,14 @@ You can export figures and the table for your thesis.
 
 | PEFT method   | Final global CER | Total communication (MB) | Trainable params (%) |
 |---------------|------------------|---------------------------|-----------------------|
-| Full (none)   | …                | …                         | 100%                  |
+| Full (none)   | 0.724            | 275,561                   | 100%                  |
 | LoRA          | …                | …                         | &lt;1%                 |
 | Adapter       | …                | …                         | small %               |
 | Encoder-only  | …                | …                         | ~50%                  |
+
+### 8.5 Comparing FL to centralized: use global CER
+
+You do **not** need to train a new model in a centralized way to compare. A **centralized baseline** already exists: the model **`danush99/Model_TrOCR-Sin-Handwritten-Text`** was trained with the same handwritten data in a centralized manner (via the notebook `notebooks/others/trocr-fine-tuned-handwritten.ipynb`). You can run the **same evaluation** (same test set, same CER/WER setup) on that model and compare its CER to the **final global CER** from your FL run. The gap (FL global CER − centralized CER) tells you how close federated learning is to the centralized baseline. See [Section 12](#12-centralized-model-evaluation-baseline-comparison) for how to run this evaluation.
 
 ---
 
@@ -494,6 +499,38 @@ python experiments/sweep.py --base-config configs/base_config.yaml --output-dir 
 
 - **Comparing runs**  
   Use the **same** `data/partitions/` for all runs you compare. Only change the experiment config (algorithm, PEFT, or hyperparameters).
+
+---
+
+## 12. Centralized Model Evaluation (Baseline Comparison)
+
+You do **not** need to train a new model in a centralized way. A **centralized trained model** already exists and was trained on the same handwritten data using the notebook `notebooks/others/trocr-fine-tuned-handwritten.ipynb`:
+
+- **Model on Hugging Face:** `danush99/Model_TrOCR-Sin-Handwritten-Text`
+
+By evaluating this model on the **same test set** (handwritten test) with the **same** CER/WER setup (num_beams=4, length_penalty=2.0), you get a **centralized baseline CER**. Compare that to the **final global CER** from your FL run to see how close federated learning is to centralized training.
+
+### 12.1 Accessing the model (private)
+
+The model is **private** on Hugging Face. You need to authenticate with a **Hugging Face token** that has read access to this repo:
+
+1. Set your token in the environment or in a `.env` file under `fl-ocr-system/` (do not commit the token):
+   - **Environment:** `export HF_TOKEN=your_token`
+   - **Or** create `fl-ocr-system/.env` with a line: `HF_TOKEN=your_token`
+2. Obtain the token from [Hugging Face → Settings → Access Tokens](https://huggingface.co/settings/tokens) if needed.
+
+### 12.2 Running the evaluation
+
+The folder **`centrallyTrainedModelEvaluation/`** contains a script to load the centralized model and compute CER/WER on the handwritten test set (same evaluation as in FL):
+
+```bash
+cd fl-ocr-system
+source .venv/bin/activate
+export HF_TOKEN=your_token   # or use .env
+python centrallyTrainedModelEvaluation/evaluate_centralized_model.py --test-dir ../allData/handwritten-data/test
+```
+
+Output: CER and WER on the test set, so you can compare directly with the final `global_cer` / `global_wer` from `experiments/results/.../metrics.csv`.
 
 ---
 
